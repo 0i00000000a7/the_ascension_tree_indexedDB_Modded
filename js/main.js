@@ -4,14 +4,13 @@ var AutoAscensionInterval;
 var AutoZeroInterval;
 var AutoMoreInterval
 
-let last_local_save = -1;
+let last_local_save = 0;
 
-function gameLoop() {
+async function gameLoop() {
     let current_time = Date.now();
 
     if (last_local_save < current_time - 1000) {
-        if (last_local_save == -1) local_load();
-        else local_save();
+        await local_save();          // 异步保存
         last_local_save = current_time;
     }
 
@@ -55,14 +54,14 @@ document.getElementById("singleclick-toggle").addEventListener("click", () => {
     player.singleclick = !player.singleclick;
     player.UpdateSettingButton()
 });
-document.getElementById("hard-reset").addEventListener("click", () => {
-    const input = window.prompt(player.isChinese?"输入一个种子, 或者留空来采用随机种子:":"Input a seed, or leave blank for a random one:");
+document.getElementById("hard-reset").addEventListener("click", async () => {   // 改为异步
+    const input = window.prompt(player.isChinese ? "输入一个种子, 或者留空来采用随机种子:" : "Input a seed, or leave blank for a random one:");
     if (input === "") {
-        hard_reset();
+        await hard_reset();          // 异步重置
     } else {
         const inputNumber = parseInt(input);
         if (inputNumber !== NaN && inputNumber >= 0 && inputNumber < 2 ** 32) {
-            hard_reset(Math.floor(inputNumber));
+            await hard_reset(Math.floor(inputNumber));
         }
     }
 });
@@ -217,7 +216,9 @@ document.addEventListener('keydown', e => {
     }
 });
 
-requestAnimationFrame(() => {
+// 异步初始化：加载存档后启动循环
+(async () => {
+    await local_load();                     // 先加载存档
     player.current_layer.selectLayer(true, true);
-    gameLoop();
-});
+    gameLoop();                            // 启动循环（gameLoop 自身为异步，但无需等待）
+})();
